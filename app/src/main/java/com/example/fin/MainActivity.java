@@ -84,8 +84,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
                         mapFragment.getMapAsync(this); //getMapAsync must be called on the main thread.
                     } else if (coarseLocationGranted != null && coarseLocationGranted) {
+
                         // Only approximate location access granted.
                     } else {
+
                         // No location access granted.
                     }
                 }
