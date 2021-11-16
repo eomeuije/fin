@@ -368,7 +368,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     });
                     busStopText.setText(busStopArr[fIndex].STATION_NM + busStopArr[fIndex].STATION_SUB_NM);
                     dlg.show();
-                    ReqBusList busListThread = new ReqBusList(busStopArr[fIndex].STATION_ID, dlg, busInfoArr, busStopArr);
+                    ReqBusList busListThread = new ReqBusList(busStopArr[fIndex].STATION_ID, dlg, busInfoArr, busStopArr, busStopArr[fIndex].LOCAL_Y, busStopArr[fIndex].LOCAL_X);
                     busListThread.setDaemon(true);
                     busListThread.start();
                     return false;
@@ -377,7 +377,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     };
 
-    private class GPSListener implements LocationListener {
+    public static class GPSListener implements LocationListener {
         @Override
         public void onLocationChanged(Location location) {
             Double latitude = location.getLatitude();

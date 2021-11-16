@@ -1,13 +1,32 @@
 package com.example.fin;
 
+import static android.content.Context.ALARM_SERVICE;
+import static androidx.core.content.ContextCompat.getSystemService;
 import static com.example.fin.MainActivity.swap;
 
 import android.annotation.SuppressLint;
+import android.app.AlarmManager;
 import android.app.Dialog;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Color;
+import android.location.Location;
+import android.location.LocationManager;
+import android.media.MediaPlayer;
+import android.media.RingtoneManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
+import android.os.PowerManager;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.RelativeSizeSpan;
@@ -16,15 +35,30 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.TimePicker;
+import android.widget.Toast;
 
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.JarURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.util.Calendar;
 
 class ReqBusList extends Thread{
 
@@ -35,6 +69,8 @@ class ReqBusList extends Thread{
     BusInfo [] busArr;
     BusStopInfo [] busStopArr;
     BusRelative [] busRelativeArr;
+    double stationLat;
+    double stationLon;
 
 //    public String searchStationNM(int id){
 //        int top = busStopArr.length - 1;
@@ -52,11 +88,13 @@ class ReqBusList extends Thread{
 //        }
 //        return busStopArr[mid].STATION_NM;
 //    }
-    ReqBusList(int stationId, Dialog dlg, BusInfo [] busInfoArr, BusStopInfo [] busStopArr){
+    ReqBusList(int stationId, Dialog dlg, BusInfo [] busInfoArr, BusStopInfo [] busStopArr, double stationLat, double stationLon){
         this.stationId = stationId;
         this.dlg = dlg;
         this.busArr = busInfoArr;
         this.busStopArr = busStopArr;
+        this.stationLat = stationLat;
+        this.stationLon = stationLon;
     }
     @SuppressLint("ResourceType")
     public void run(){
@@ -178,12 +216,56 @@ class ReqBusList extends Thread{
                                 param.addRule(RelativeLayout.BELOW, 2);
                                 how.setLayoutParams(param);
                                 relativeLayout.setOnClickListener(new View.OnClickListener() {
+                                    @SuppressLint("MissingPermission")
                                     @Override
                                     public void onClick(View view) {
-                                        Bus obj = (Bus)view.getTag();
-//                                        for (BusStopInfo b:busStopArr) {
-//                                            System.out.println(b.STATION_ID);
-//                                        }
+                                        Bus bus = (Bus)view.getTag();
+                                        View dialogView = (View)View.inflate(view.getContext(), R.layout.dialog_alarm, null);
+                                        AlertDialog.Builder dlg = new AlertDialog.Builder(view.getContext());
+                                        dlg.setView(dialogView);
+                                        dlg.setTitle("알람 설정");
+
+                                        // 나가야 할 시간 계산
+                                        LocationManager manager=(LocationManager) view.getContext().getSystemService(Context.LOCATION_SERVICE);
+                                        MainActivity.GPSListener gpsListener = new MainActivity.GPSListener();
+                                        manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, gpsListener);
+                                        manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1, gpsListener);
+                                        Location lastLocation = manager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                                        LocationDistance ld = new LocationDistance();
+                                        int time = (int) (ld.distance(lastLocation.getLatitude(), lastLocation.getLongitude(), stationLat, stationLon) / 5.0 * 1.8 * 3600);
+                                        System.out.println(time);
+                                        Calendar cal = Calendar.getInstance();
+                                        cal.add(Calendar.SECOND, bus.PREDICT_TRAV_TM - time);
+                                        TimePicker timePicker = (TimePicker)dialogView.findViewById(R.id.timePicker);
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                            timePicker.setHour(cal.get(Calendar.HOUR));
+                                            timePicker.setMinute(cal.get(Calendar.MINUTE));
+                                        }
+                                        dlg.setPositiveButton("확인", new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface dialogInterface, int i) {
+                                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                                    cal.set(Calendar.HOUR, timePicker.getHour());
+                                                    cal.set(Calendar.MINUTE, timePicker.getMinute());
+                                                }else{
+                                                    cal.set(Calendar.HOUR, timePicker.getCurrentHour());
+                                                    cal.set(Calendar.MINUTE, timePicker.getCurrentMinute());
+                                                }
+                                                // Receiver 설정
+                                                Intent intent = new Intent(dlg.getContext(), AlarmReceiver.class);
+                                                // state 값이 on 이면 알람시작, off 이면 중지
+                                                intent.putExtra("state", "on");
+
+                                                PendingIntent pendingIntent = PendingIntent.getBroadcast(dlg.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+                                                // 알람 설정
+                                                AlarmManager alarmManager = (AlarmManager) dlg.getContext().getSystemService(ALARM_SERVICE);
+                                                alarmManager.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), pendingIntent);
+//                                                Toast.makeText(dialogView.getContext(),result, Toast.LENGTH_SHORT);
+                                            }
+                                        });
+                                        dlg.setNegativeButton("취소", null);
+                                        dlg.show();
                                     }
                                 });
 
