@@ -191,7 +191,19 @@ class ReqBusList extends Thread{
                                 }
                                 when.setText(wh);
                                 // 출발 -> 종점
+                                ReqBusRouteList busRouteListthread = new ReqBusRouteList(bus.ROUTE_ID);
+                                bus.busRouteArr = busRouteListthread.getBusRouteArr();
+                                int turIndex;
+                                for(turIndex = 0; !bus.busRouteArr[turIndex].TUR; turIndex++){}
+                                turIndex--;
+                                String result;
+                                if(bus.STATION_ORD <= turIndex){
+                                    result = bus.busRouteArr[0].STATION_NM + "→" + bus.busRouteArr[turIndex].STATION_NM;
+                                }else{
+                                    result = bus.busRouteArr[turIndex].STATION_NM + "→" + bus.busRouteArr[0].STATION_NM;
+                                }
                                 TextView how = new TextView(dlg.getContext());
+                                how.setText(result);
                                 how.setTextSize(14);
                                 how.setTextColor(Color.parseColor("#838383"));
                                 // 레이아웃 디자인
@@ -234,13 +246,58 @@ class ReqBusList extends Thread{
                                         LocationDistance ld = new LocationDistance();
                                         int time = (int) (ld.distance(lastLocation.getLatitude(), lastLocation.getLongitude(), stationLat, stationLon) / 5.0 * 1.8 * 3600);
                                         System.out.println(time);
+                                        time = bus.PREDICT_TRAV_TM - time;
+                                        if(time < 0){       // 0보다 작으면 그 다음 버스나 이미 지난 버스의 위치로 배차간격을 계산해 시간을 예상한다.
+                                            TextView danger = (TextView) dialogView.findViewById(R.id.dangerMessage);
+                                            danger.setText("※주의 시간이 부정확할 수 있습니다.");
+                                            int timeResult = 0;         //배차 간격
+                                            boolean arriveStartPoint = false;
+                                            boolean arriveEndPoint = false;
+                                            int next = -1;
+                                            int nNext = -1;
+                                            int prev = -1;
+                                            for(int i = 1; i < bus.STATION_CNT; i++){
+                                                if(!arriveStartPoint && bus.STATION_ORD - i >= 0 && !bus.busRouteArr[bus.STATION_ORD - i].TUR) {
+                                                    if (!bus.busRouteArr[bus.STATION_ORD - i].PLATE_NO.equals("null")) {  //다음 버스 위치가 잡혔을 때
+                                                        if (next == -1) {                  // 다음 버스 위치 저장
+                                                            next = bus.STATION_ORD - i;
+                                                            if(prev != -1){
+                                                                timeResult = (prev + next) * 75;
+                                                                break;
+                                                            }
+                                                        } else if (nNext == -1) {         // 다다음 버스 위치 저장
+                                                            nNext = bus.STATION_ORD - i;
+                                                            if(prev != -1){
+                                                                timeResult = (nNext - next) * 75;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                }else{
+                                                    arriveStartPoint = true;
+                                                }
+                                                if(!arriveEndPoint && bus.STATION_ORD - i >= 0 && !bus.busRouteArr[bus.STATION_ORD - i].TUR) {
+                                                    if (bus.STATION_ORD + i < bus.busRouteArr.length && !bus.busRouteArr[bus.STATION_ORD + i].PLATE_NO.equals("null")) {  //이미 지나간 버스 위치가 잡혔을 때
+                                                        prev = bus.STATION_ORD + i;
+                                                        if (next != -1) {
+                                                            timeResult = (prev + next) * 75;
+                                                            break;
+                                                        }
+                                                    }
+                                                }else{
+                                                    arriveEndPoint = true;
+                                                }
+                                            }
+                                            time += timeResult;
+                                        }
                                         Calendar cal = Calendar.getInstance();
-                                        cal.add(Calendar.SECOND, bus.PREDICT_TRAV_TM - time);
+                                        cal.add(Calendar.SECOND, time);
                                         TimePicker timePicker = (TimePicker)dialogView.findViewById(R.id.timePicker);
                                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                             timePicker.setHour(cal.get(Calendar.HOUR));
                                             timePicker.setMinute(cal.get(Calendar.MINUTE));
                                         }
+                                        // 확인 버튼 클릭시
                                         dlg.setPositiveButton("확인", new DialogInterface.OnClickListener() {
                                             @Override
                                             public void onClick(DialogInterface dialogInterface, int i) {
@@ -273,8 +330,7 @@ class ReqBusList extends Thread{
                                 relativeLayout.addView(when);
                                 relativeLayout.addView(how);
 
-                                ReqBusRouteList busRouteListthread = new ReqBusRouteList(bus.ROUTE_ID, how, bus.STATION_ORD);
-                                busRouteListthread.run();
+
                                 if(bus.PREDICT_TRAV_TM == 0){
                                     BusRelative busRelative = new BusRelative(relativeLayout, bus.PREDICT_TRAV_TM);
                                     busRelativeArr[busRelativeArrIndex++] = busRelative;
@@ -338,20 +394,12 @@ class ReqBusList extends Thread{
                 linearLayout.addView(relativeLayout);
                 return;
             }
-            for(int i = 0; !(busRelativeArr[i] == null); i++){
+            for(int i = 0; i < busRelativeArr.length && !(busRelativeArr[i] == null); i++){
                 linearLayout.addView(busRelativeArr[i].relativeLayout);
             }
         }
     };
-    class Bus{
-        int ROUTE_ID;       // 노선 ID
-        String BUS_NM;          // 버스 번호
-        short STATION_ORD;     // 노선에 대한 정류장 순번
-        short PREDICT_TRAV_TM;  // 도착 예정 시간
-        short LEFT_STATION;     // 남은 정류장 수
-        int index;
-        short STATION_CNT;      // 총 정류장 수
-    }
+
 }
 class BusRelative{
     RelativeLayout relativeLayout;
@@ -360,4 +408,14 @@ class BusRelative{
         this.relativeLayout = relativeLayout;
         this.id = id;
     }
+}
+class Bus{
+    int ROUTE_ID;       // 노선 ID
+    String BUS_NM;          // 버스 번호
+    short STATION_ORD;     // 노선에 대한 정류장 순번
+    short PREDICT_TRAV_TM;  // 도착 예정 시간
+    short LEFT_STATION;     // 남은 정류장 수
+    int index;
+    short STATION_CNT;      // 총 정류장 수
+    BusRoute [] busRouteArr;
 }

@@ -79,7 +79,7 @@ public class AlarmService extends Service {
             NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId);
             Notification notification = builder.setOngoing(true)
                     .setContentTitle("버스가 곧 도착합니다")
-                    .setSmallIcon(R.drawable.busIcon)
+                    .setSmallIcon(R.drawable.busicon)
                     .setCategory(Notification.CATEGORY_ALARM)
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setDefaults(NotificationCompat.DEFAULT_ALL)

@@ -15,18 +15,13 @@ import java.net.URL;
 public class ReqBusRouteList{
 
     int routeId;
-    int busCur = -1;
-    int turIndex;
-    TextView textView = null;
     BusRoute [] busRouteArr;
     String endPoint = "http://openapi.changwon.go.kr/rest/bis/BusLocation/";
     String key = "0%2BXvCseXelCWRB66ZSWmKJLmed%2BENq9on4sYgzJQm6o2P1uhkiaFr8x58WcbTPEaDtktKzQCtIszeA0ndXQaBg%3D%3D";
-    ReqBusRouteList(int routeId, TextView textView, int busCur){
+    ReqBusRouteList(int routeId){
         this.routeId = routeId;
-        this.textView = textView;
-        this.busCur = busCur;
     }
-    public void run(){
+    public BusRoute[] getBusRouteArr(){
         XmlPullParser xpp;
         XmlPullParserFactory factory;
         try {
@@ -92,9 +87,8 @@ public class ReqBusRouteList{
                                 }
                                 case "TUR":{
                                     xpp.next();
-                                    busRoute.TUR = xpp.getText();
-                                    if(busRoute.TUR.equals("T")){
-                                        turIndex = busRouteArrindex;
+                                    if(xpp.getText().equals("T")){
+                                        busRoute.TUR = true;
                                     }
                                     xpp.next();
                                     break;
@@ -105,49 +99,19 @@ public class ReqBusRouteList{
                 }
                 eventType = xpp.next();
             }
-            String result;
-            if(busCur <= turIndex){
-                result = busRouteArr[0].STATION_NM + "→" + busRouteArr[turIndex].STATION_NM;
-            }else{
-                result = busRouteArr[turIndex].STATION_NM + "→" + busRouteArr[0].STATION_NM;
-            }
-            textView.setText(result);
+
         } catch (XmlPullParserException | IOException protocolException) {
             protocolException.printStackTrace();
         }
+        return busRouteArr;
     }
 
 }
 class BusRoute{
-    int ROUTE_ID;
-    String ROUTE_NM;
-    int STATION_ID;
-    String STATION_NM;
-    String PLATE_NO;
-    String TUR;
+    int ROUTE_ID;       //버스 ID
+    String ROUTE_NM;    //버스 번호
+    int STATION_ID;     //정류장 ID
+    String STATION_NM;  //정류장명
+    String PLATE_NO;    //차량 번호
+    boolean TUR = false;//회차지 ture or false
 }
-//class BusRouteListHandler extends Handler{
-//    TextView textView = null;
-//    int busCur = -1;
-//    BusRoute busRouteArr [];
-//    BusRouteListHandler(TextView textView, int busCur){
-//        this.busCur = busCur;
-//        this.busRouteArr = busRouteArr;
-//        this.textView = textView;
-//    }
-//    @Override
-//    public void handleMessage(Message msg) {
-//        if(textView != null){
-//            if(msg.what <= -2){
-//                return;
-//            }
-//            if(msg.what == -1){
-//
-//                return;
-//            }else{
-//
-//                return;
-//            }
-//        }
-//    }
-//}
