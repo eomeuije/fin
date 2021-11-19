@@ -7,11 +7,22 @@
     tools:context=".MainActivity"
     android:orientation="vertical">
 
-    <Button
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="search"/>
-
+        android:orientation="horizontal">
+        <Button
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/menubuttonicon"/>
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/edtSearch"
+            android:hint="버스 번호로 검색"
+            android:singleLine="true"
+            android:inputType="number"/>
+    </LinearLayout>
     <fragment
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
