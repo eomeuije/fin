@@ -6,6 +6,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -13,9 +14,12 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -55,6 +59,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     //bus api key
     String key = "0%2BXvCseXelCWRB66ZSWmKJLmed%2BENq9on4sYgzJQm6o2P1uhkiaFr8x58WcbTPEaDtktKzQCtIszeA0ndXQaBg%3D%3D";
 
+    EditText edtSearch;
     BusStopInfo [] busStopArr;
     BusInfo [] busInfoArr;
     public static void swap(Object [] arr, int i, int j) {
@@ -105,6 +110,132 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         BusInfoThread busInfothread = new BusInfoThread();
         busInfothread.setDaemon(true);
         busInfothread.start();
+
+        edtSearch = (EditText)findViewById(R.id.edtSearch);
+        edtSearch.setOnKeyListener(new View.OnKeyListener() {
+            @SuppressLint("ResourceType")
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)){
+                    Dialog dlg = new Dialog(MainActivity.this, android.R.style.Theme_NoTitleBar);
+                    dlg.setContentView(R.layout.bus_stop_list);
+                    Button backButton = (Button)dlg.findViewById(R.id.backButton);
+                    TextView resultText = (TextView)dlg.findViewById(R.id.busStopText);
+                    LinearLayout searchResult = (LinearLayout)dlg.findViewById(R.id.busStopLinearLayout);
+
+                    backButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            dlg.dismiss();
+                        }
+                    });
+                    String busNM = String.valueOf(edtSearch.getText());
+                    resultText.setText("검색 결과: " + busNM);
+                    dlg.show();
+                    for(int i = 0; i < busInfoArr.length; i++){
+                        if(busInfoArr[i].ROUTE_NM.contains(busNM)){
+                            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                                    LinearLayout.LayoutParams.MATCH_PARENT,
+                                    LinearLayout.LayoutParams.WRAP_CONTENT
+                            );
+                            params.bottomMargin = 5;
+                            RelativeLayout relativeLayout = new RelativeLayout(dlg.getContext());
+                            relativeLayout.setLayoutParams(params);
+                            // 버스 번호
+                            TextView what = new TextView(dlg.getContext());
+                            what.setTextSize(40);
+                            what.setId(2);
+                            what.setText(busInfoArr[i].ROUTE_NM);
+                            switch (busInfoArr[i].ROUTE_COLOR){
+                                case 2:{
+                                    what.setTextColor(Color.parseColor("#0055ff"));
+                                    break;
+                                }
+                                case 3:
+                                case 1: {
+                                    what.setTextColor(Color.parseColor("#00DD00"));
+                                    break;
+                                }
+                                case 5:{
+                                    what.setTextColor(Color.parseColor("#ff5500"));
+                                    break;
+                                }
+                                case 6:{
+                                    what.setTextColor(Color.parseColor("#ff0044"));
+                                    break;
+                                }
+                                default:{
+                                    what.setTextColor(Color.parseColor("#030303"));
+                                    break;
+                                }
+                            }
+                            // 정류장 수
+                            TextView count = new TextView(dlg.getContext());
+                            count.setTextSize(17);
+                            count.setTextColor(Color.parseColor("#131313"));
+                            count.setText(Short.toString(busInfoArr[i].STATION_CNT));
+
+                            // 정류장 수 코멘트
+                            TextView com = new TextView(dlg.getContext());
+                            com.setTextSize(10);
+                            com.setTextColor(Color.parseColor("#D3D3D3"));
+                            com.setText("총 정류장 수");
+
+                            // 레이아웃 디자인
+                            RelativeLayout.LayoutParams param = new RelativeLayout.LayoutParams(
+                                    RelativeLayout.LayoutParams.WRAP_CONTENT,
+                                    RelativeLayout.LayoutParams.WRAP_CONTENT
+                            );
+                            param.addRule(RelativeLayout.ALIGN_PARENT_START, 1);
+                            param.leftMargin = 15;
+                            what.setLayoutParams(param);
+                            param = new RelativeLayout.LayoutParams(
+                                    RelativeLayout.LayoutParams.WRAP_CONTENT,
+                                    RelativeLayout.LayoutParams.WRAP_CONTENT
+                            );
+                            count.setLayoutParams(param);
+                            param.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+                            param = new RelativeLayout.LayoutParams(
+                                    RelativeLayout.LayoutParams.WRAP_CONTENT,
+                                    RelativeLayout.LayoutParams.WRAP_CONTENT
+                            );
+                            param.addRule(RelativeLayout.ALIGN_BOTTOM, 2);
+                            param.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+                            com.setLayoutParams(param);
+                            relativeLayout.addView(what);
+                            relativeLayout.addView(count);
+                            relativeLayout.addView(com);
+                            searchResult.addView(relativeLayout);
+                            relativeLayout.setTag(busInfoArr[i]);
+                            relativeLayout.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    BusInfo busInfo = (BusInfo) view.getTag();
+                                    Dialog dlgBus = new Dialog(dlg.getContext(), android.R.style.Theme_NoTitleBar);
+                                    dlgBus.setContentView(R.layout.bus_stop_list);
+                                    Button backButton = (Button)dlgBus.findViewById(R.id.backButton);
+                                    TextView resultText = (TextView)dlgBus.findViewById(R.id.busStopText);
+                                    LinearLayout searchResult = (LinearLayout)dlgBus.findViewById(R.id.busStopLinearLayout);
+
+                                    backButton.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View view) {
+                                            dlgBus.dismiss();
+                                        }
+                                    });
+                                    resultText.setText(busInfo.ROUTE_NM);
+                                    dlgBus.show();
+                                    BusSearchThread busSearchThread = new BusSearchThread(searchResult, busInfo.ROUTE_ID, busStopArr);
+                                    busSearchThread.setDaemon(true);
+                                    busSearchThread.start();
+                                }
+                            });
+                        }
+                    }
+                }
+                return false;
+            }
+        });
     }
 
 
@@ -324,7 +455,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     for (int j = i; j > 0; j--)
                         if (busStopArr[j - 1].STATION_ID > busStopArr[j].STATION_ID)
                             swap(busStopArr, j - 1, j);
-			            else
+                        else
                             break;
                 return;
             }
@@ -349,11 +480,22 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     if(marker.getTitle().equals("내 위치")){
                         return false;
                     }
-                    String id = marker.getSnippet();
+                    int id = Integer.parseInt(marker.getSnippet());
                     int fIndex = -1;
-                    for(int i = 0; i < busStopArr.length; i++){
-                        if(busStopArr[i].STATION_ID == Integer.parseInt(id)){
-                               fIndex = i;
+                    int low = 0;
+                    int high = busStopArr.length - 1;
+                    int mid;
+                    while(low <= high) {
+                        mid = (low + high) / 2;
+                        if (busStopArr[mid].STATION_ID == id) {
+                            fIndex = mid;
+                            break;
+                        }
+                        else if (busStopArr[mid].STATION_ID > id) {
+                            high = mid - 1;
+                        }
+                        else {
+                            low = mid + 1;
                         }
                     }
                     Dialog dlg = new Dialog(MainActivity.this, android.R.style.Theme_NoTitleBar);

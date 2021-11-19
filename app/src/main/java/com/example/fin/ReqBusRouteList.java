@@ -114,4 +114,51 @@ class BusRoute{
     String STATION_NM;  //정류장명
     String PLATE_NO;    //차량 번호
     boolean TUR = false;//회차지 ture or false
+
+    public static int getBusTerm(BusRoute [] busRouteArr, int target){
+        int timeResult = 0;         //배차 간격
+        boolean arriveStartPoint = false;
+        boolean arriveEndPoint = false;
+        int next = -1;
+        int nNext = -1;
+        int prev = -1;
+        int pPrev = -1;
+        for(int i = 1; i < busRouteArr.length; i++){
+            if(!arriveStartPoint && target - i >= 0 && !busRouteArr[target - i].TUR) {
+                if (!busRouteArr[target - i].PLATE_NO.equals("null")) {  //다음 버스 위치가 잡혔을 때
+                    if (next == -1) {                  // 다음 버스 위치 저장
+                        next = i;
+                        if(prev != -1){
+                            timeResult = (prev + next) * 75;
+                            break;
+                        }
+                    } else if (nNext == -1) {         // 다다음 버스 위치 저장
+                        nNext = i;
+                        timeResult = (nNext - next) * 75;
+                        break;
+                    }
+                }
+            }else{
+                arriveStartPoint = true;
+            }
+            if(!arriveEndPoint && target + i < busRouteArr.length && !busRouteArr[target + i].TUR) {
+                if (!busRouteArr[target + i].PLATE_NO.equals("null")) {  //이미 지나간 버스 위치가 잡혔을 때
+                    if (prev == -1) {
+                        prev = i;
+                        if(next != -1) {
+                            timeResult = (prev + next) * 75;
+                            break;
+                        }
+                    }else if(pPrev == -1){
+                        pPrev = i;
+                        timeResult = (pPrev - prev) * 75;
+                        break;
+                    }
+                }
+            }else{
+                arriveEndPoint = true;
+            }
+        }
+        return timeResult;
+    }
 }

@@ -72,7 +72,7 @@ class ReqBusList extends Thread{
     double stationLat;
     double stationLon;
 
-//    public String searchStationNM(int id){
+    //    public String searchStationNM(int id){
 //        int top = busStopArr.length - 1;
 //        int bot = 0;
 //        int mid = 0;
@@ -116,7 +116,6 @@ class ReqBusList extends Thread{
             String pastNM = "";
             while(eventType != XmlPullParser.END_DOCUMENT){
 
-                //System.out.println(xpp.getText() + xpp.getName());
                 tagName = xpp.getName();
                 if(tagName == null){
                 }
@@ -231,98 +230,7 @@ class ReqBusList extends Thread{
                                     @SuppressLint("MissingPermission")
                                     @Override
                                     public void onClick(View view) {
-                                        Bus bus = (Bus)view.getTag();
-                                        View dialogView = (View)View.inflate(view.getContext(), R.layout.dialog_alarm, null);
-                                        AlertDialog.Builder dlg = new AlertDialog.Builder(view.getContext());
-                                        dlg.setView(dialogView);
-                                        dlg.setTitle("알람 설정");
-
-                                        // 나가야 할 시간 계산
-                                        LocationManager manager=(LocationManager) view.getContext().getSystemService(Context.LOCATION_SERVICE);
-                                        MainActivity.GPSListener gpsListener = new MainActivity.GPSListener();
-                                        manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, gpsListener);
-                                        manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1, gpsListener);
-                                        Location lastLocation = manager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                                        LocationDistance ld = new LocationDistance();
-                                        int time = (int) (ld.distance(lastLocation.getLatitude(), lastLocation.getLongitude(), stationLat, stationLon) / 5.0 * 1.8 * 3600);
-                                        System.out.println(time);
-                                        time = bus.PREDICT_TRAV_TM - time;
-                                        if(time < 0){       // 0보다 작으면 그 다음 버스나 이미 지난 버스의 위치로 배차간격을 계산해 시간을 예상한다.
-                                            TextView danger = (TextView) dialogView.findViewById(R.id.dangerMessage);
-                                            danger.setText("※주의 시간이 부정확할 수 있습니다.");
-                                            int timeResult = 0;         //배차 간격
-                                            boolean arriveStartPoint = false;
-                                            boolean arriveEndPoint = false;
-                                            int next = -1;
-                                            int nNext = -1;
-                                            int prev = -1;
-                                            for(int i = 1; i < bus.STATION_CNT; i++){
-                                                if(!arriveStartPoint && bus.STATION_ORD - i >= 0 && !bus.busRouteArr[bus.STATION_ORD - i].TUR) {
-                                                    if (!bus.busRouteArr[bus.STATION_ORD - i].PLATE_NO.equals("null")) {  //다음 버스 위치가 잡혔을 때
-                                                        if (next == -1) {                  // 다음 버스 위치 저장
-                                                            next = bus.STATION_ORD - i;
-                                                            if(prev != -1){
-                                                                timeResult = (prev + next) * 75;
-                                                                break;
-                                                            }
-                                                        } else if (nNext == -1) {         // 다다음 버스 위치 저장
-                                                            nNext = bus.STATION_ORD - i;
-                                                            if(prev != -1){
-                                                                timeResult = (nNext - next) * 75;
-                                                                break;
-                                                            }
-                                                        }
-                                                    }
-                                                }else{
-                                                    arriveStartPoint = true;
-                                                }
-                                                if(!arriveEndPoint && bus.STATION_ORD - i >= 0 && !bus.busRouteArr[bus.STATION_ORD - i].TUR) {
-                                                    if (bus.STATION_ORD + i < bus.busRouteArr.length && !bus.busRouteArr[bus.STATION_ORD + i].PLATE_NO.equals("null")) {  //이미 지나간 버스 위치가 잡혔을 때
-                                                        prev = bus.STATION_ORD + i;
-                                                        if (next != -1) {
-                                                            timeResult = (prev + next) * 75;
-                                                            break;
-                                                        }
-                                                    }
-                                                }else{
-                                                    arriveEndPoint = true;
-                                                }
-                                            }
-                                            time += timeResult;
-                                        }
-                                        Calendar cal = Calendar.getInstance();
-                                        cal.add(Calendar.SECOND, time);
-                                        TimePicker timePicker = (TimePicker)dialogView.findViewById(R.id.timePicker);
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                            timePicker.setHour(cal.get(Calendar.HOUR));
-                                            timePicker.setMinute(cal.get(Calendar.MINUTE));
-                                        }
-                                        // 확인 버튼 클릭시
-                                        dlg.setPositiveButton("확인", new DialogInterface.OnClickListener() {
-                                            @Override
-                                            public void onClick(DialogInterface dialogInterface, int i) {
-                                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                                    cal.set(Calendar.HOUR, timePicker.getHour());
-                                                    cal.set(Calendar.MINUTE, timePicker.getMinute());
-                                                }else{
-                                                    cal.set(Calendar.HOUR, timePicker.getCurrentHour());
-                                                    cal.set(Calendar.MINUTE, timePicker.getCurrentMinute());
-                                                }
-                                                // Receiver 설정
-                                                Intent intent = new Intent(dlg.getContext(), AlarmReceiver.class);
-                                                // state 값이 on 이면 알람시작, off 이면 중지
-                                                intent.putExtra("state", "on");
-
-                                                PendingIntent pendingIntent = PendingIntent.getBroadcast(dlg.getContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-                                                // 알람 설정
-                                                AlarmManager alarmManager = (AlarmManager) dlg.getContext().getSystemService(ALARM_SERVICE);
-                                                alarmManager.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), pendingIntent);
-//                                                Toast.makeText(dialogView.getContext(),result, Toast.LENGTH_SHORT);
-                                            }
-                                        });
-                                        dlg.setNegativeButton("취소", null);
-                                        dlg.show();
+                                        CreateAlarmDialog.create(view, stationLat, stationLon);
                                     }
                                 });
 
