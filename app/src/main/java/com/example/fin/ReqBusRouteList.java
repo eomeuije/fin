@@ -24,6 +24,7 @@ public class ReqBusRouteList{
     public BusRoute[] getBusRouteArr(){
         XmlPullParser xpp;
         XmlPullParserFactory factory;
+        int same = 0;
         try {
             URL url = new URL(endPoint + "?serviceKey=" + key + "&route=" + routeId); //문자열로 된 요청 url을 URL객체로 생성
             InputStream is = url.openStream();
@@ -33,6 +34,7 @@ public class ReqBusRouteList{
             xpp.setInput(new InputStreamReader(is, "UTF-8"));
             String tagName = null;
             int busRouteArrindex = 0;
+            int preId = -1;
             while(eventType != XmlPullParser.END_DOCUMENT){
 
                 tagName = xpp.getName();
@@ -51,6 +53,11 @@ public class ReqBusRouteList{
                         tagName = xpp.getName();
                         if(tagName != null){
                             if(tagName.equals("row")) {
+                                if(preId == busRoute.STATION_ID){
+                                    same++;
+                                    break;
+                                }
+                                preId = busRoute.STATION_ID;
                                 busRouteArr[busRouteArrindex++] = busRoute;
                                 break;
                             }
@@ -99,9 +106,16 @@ public class ReqBusRouteList{
                 }
                 eventType = xpp.next();
             }
-
+            is.close();
         } catch (XmlPullParserException | IOException protocolException) {
             protocolException.printStackTrace();
+        }
+        if(same > 0){
+            BusRoute [] busRouteArrR = new BusRoute[busRouteArr.length - same];
+            for(int i = 0; i < busRouteArrR.length; i++){
+                busRouteArrR[i] = busRouteArr[i];
+            }
+            busRouteArr = busRouteArrR;
         }
         return busRouteArr;
     }
@@ -116,6 +130,10 @@ class BusRoute{
     boolean TUR = false;//회차지 ture or false
 
     public static int getBusTerm(BusRoute [] busRouteArr, int target){
+        int size = busRouteArr.length;
+        if(busRouteArr[size - 1].STATION_ID < 0){
+            size = ~busRouteArr[size - 1].STATION_ID + 1;
+        }
         int timeResult = 0;         //배차 간격
         boolean arriveStartPoint = false;
         boolean arriveEndPoint = false;
@@ -123,7 +141,7 @@ class BusRoute{
         int nNext = -1;
         int prev = -1;
         int pPrev = -1;
-        for(int i = 1; i < busRouteArr.length; i++){
+        for(int i = 1; i < size; i++){
             if(!arriveStartPoint && target - i >= 0 && !busRouteArr[target - i].TUR) {
                 if (!busRouteArr[target - i].PLATE_NO.equals("null")) {  //다음 버스 위치가 잡혔을 때
                     if (next == -1) {                  // 다음 버스 위치 저장
@@ -141,7 +159,7 @@ class BusRoute{
             }else{
                 arriveStartPoint = true;
             }
-            if(!arriveEndPoint && target + i < busRouteArr.length && !busRouteArr[target + i].TUR) {
+            if(!arriveEndPoint && target + i < size && !busRouteArr[target + i].TUR) {
                 if (!busRouteArr[target + i].PLATE_NO.equals("null")) {  //이미 지나간 버스 위치가 잡혔을 때
                     if (prev == -1) {
                         prev = i;

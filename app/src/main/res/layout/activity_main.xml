@@ -1,32 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<androidx.drawerlayout.widget.DrawerLayout
+    android:id="@+id/drawerLayout"
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity"
-    android:orientation="vertical">
+    tools:context=".MainActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        <Button
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/menubuttonicon"/>
-        <EditText
+        android:layout_height="match_parent"
+        tools:context=".MainActivity"
+        android:orientation="vertical">
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/edtSearch"
-            android:hint="버스 번호로 검색"
-            android:singleLine="true"
-            android:inputType="number"/>
-    </LinearLayout>
-    <fragment
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
-        android:id="@+id/map" />
+            android:orientation="horizontal">
+            <Button
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/menubuttonicon"
+                android:id="@+id/dayAlarmMenu"/>
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/edtSearch"
+                android:hint="버스 번호로 검색"
+                android:singleLine="true"
+                android:inputType="number"/>
+        </LinearLayout>
+        <fragment
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:name="com.google.android.gms.maps.SupportMapFragment"
+            android:id="@+id/map" />
 
-</LinearLayout>
+    </LinearLayout>
+
+    <RelativeLayout
+        android:id="@+id/drawer"
+        android:layout_width="300dp"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal"
+        android:background="#ffffff"
+        android:layout_gravity="start">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="주간 알람 목록"
+            android:textColor="#131313"
+            android:textSize="30dp"
+            android:layout_marginBottom="10dp"
+            android:id="@+id/weektext"
+            android:background="#D3D3D3"/>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@+id/weektext">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/weekAlarmLinear"
+                android:orientation="vertical"/>
+
+        </ScrollView>
+
+    </RelativeLayout>
+
+</androidx.drawerlayout.widget.DrawerLayout>

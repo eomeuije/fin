@@ -4,8 +4,6 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Context;
-import android.content.Intent;
-import android.content.res.AssetManager;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
@@ -21,11 +19,12 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.RequiresApi;
+import androidx.core.content.ContextCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.FragmentActivity;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -41,24 +40,23 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.net.URL;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
     //구글맵참조변수
     GoogleMap mMap;
     Location lastLocation;
+    String fName = "AlarmList.csv";
     //bus api key
     String key = "0%2BXvCseXelCWRB66ZSWmKJLmed%2BENq9on4sYgzJQm6o2P1uhkiaFr8x58WcbTPEaDtktKzQCtIszeA0ndXQaBg%3D%3D";
 
+    DrawerLayout drawerLayout;
+    View drawerView;
     EditText edtSearch;
     BusStopInfo [] busStopArr;
     BusInfo [] busInfoArr;
@@ -111,127 +109,24 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         busInfothread.setDaemon(true);
         busInfothread.start();
 
+        drawerLayout = (DrawerLayout) findViewById(R.id.drawerLayout);
+        drawerView = (View) findViewById(R.id.drawer);
+
+        Button btnOpenDrawer = (Button) findViewById(R.id.dayAlarmMenu);
+        btnOpenDrawer.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                wKeyfunc();
+            }
+        });
+
         edtSearch = (EditText)findViewById(R.id.edtSearch);
         edtSearch.setOnKeyListener(new View.OnKeyListener() {
             @SuppressLint("ResourceType")
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
                 if((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)){
-                    Dialog dlg = new Dialog(MainActivity.this, android.R.style.Theme_NoTitleBar);
-                    dlg.setContentView(R.layout.bus_stop_list);
-                    Button backButton = (Button)dlg.findViewById(R.id.backButton);
-                    TextView resultText = (TextView)dlg.findViewById(R.id.busStopText);
-                    LinearLayout searchResult = (LinearLayout)dlg.findViewById(R.id.busStopLinearLayout);
-
-                    backButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            dlg.dismiss();
-                        }
-                    });
-                    String busNM = String.valueOf(edtSearch.getText());
-                    resultText.setText("검색 결과: " + busNM);
-                    dlg.show();
-                    for(int i = 0; i < busInfoArr.length; i++){
-                        if(busInfoArr[i].ROUTE_NM.contains(busNM)){
-                            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                                    LinearLayout.LayoutParams.MATCH_PARENT,
-                                    LinearLayout.LayoutParams.WRAP_CONTENT
-                            );
-                            params.bottomMargin = 5;
-                            RelativeLayout relativeLayout = new RelativeLayout(dlg.getContext());
-                            relativeLayout.setLayoutParams(params);
-                            // 버스 번호
-                            TextView what = new TextView(dlg.getContext());
-                            what.setTextSize(40);
-                            what.setId(2);
-                            what.setText(busInfoArr[i].ROUTE_NM);
-                            switch (busInfoArr[i].ROUTE_COLOR){
-                                case 2:{
-                                    what.setTextColor(Color.parseColor("#0055ff"));
-                                    break;
-                                }
-                                case 3:
-                                case 1: {
-                                    what.setTextColor(Color.parseColor("#00DD00"));
-                                    break;
-                                }
-                                case 5:{
-                                    what.setTextColor(Color.parseColor("#ff5500"));
-                                    break;
-                                }
-                                case 6:{
-                                    what.setTextColor(Color.parseColor("#ff0044"));
-                                    break;
-                                }
-                                default:{
-                                    what.setTextColor(Color.parseColor("#030303"));
-                                    break;
-                                }
-                            }
-                            // 정류장 수
-                            TextView count = new TextView(dlg.getContext());
-                            count.setTextSize(17);
-                            count.setTextColor(Color.parseColor("#131313"));
-                            count.setText(Short.toString(busInfoArr[i].STATION_CNT));
-
-                            // 정류장 수 코멘트
-                            TextView com = new TextView(dlg.getContext());
-                            com.setTextSize(10);
-                            com.setTextColor(Color.parseColor("#D3D3D3"));
-                            com.setText("총 정류장 수");
-
-                            // 레이아웃 디자인
-                            RelativeLayout.LayoutParams param = new RelativeLayout.LayoutParams(
-                                    RelativeLayout.LayoutParams.WRAP_CONTENT,
-                                    RelativeLayout.LayoutParams.WRAP_CONTENT
-                            );
-                            param.addRule(RelativeLayout.ALIGN_PARENT_START, 1);
-                            param.leftMargin = 15;
-                            what.setLayoutParams(param);
-                            param = new RelativeLayout.LayoutParams(
-                                    RelativeLayout.LayoutParams.WRAP_CONTENT,
-                                    RelativeLayout.LayoutParams.WRAP_CONTENT
-                            );
-                            count.setLayoutParams(param);
-                            param.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-                            param = new RelativeLayout.LayoutParams(
-                                    RelativeLayout.LayoutParams.WRAP_CONTENT,
-                                    RelativeLayout.LayoutParams.WRAP_CONTENT
-                            );
-                            param.addRule(RelativeLayout.ALIGN_BOTTOM, 2);
-                            param.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-                            com.setLayoutParams(param);
-                            relativeLayout.addView(what);
-                            relativeLayout.addView(count);
-                            relativeLayout.addView(com);
-                            searchResult.addView(relativeLayout);
-                            relativeLayout.setTag(busInfoArr[i]);
-                            relativeLayout.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View view) {
-                                    BusInfo busInfo = (BusInfo) view.getTag();
-                                    Dialog dlgBus = new Dialog(dlg.getContext(), android.R.style.Theme_NoTitleBar);
-                                    dlgBus.setContentView(R.layout.bus_stop_list);
-                                    Button backButton = (Button)dlgBus.findViewById(R.id.backButton);
-                                    TextView resultText = (TextView)dlgBus.findViewById(R.id.busStopText);
-                                    LinearLayout searchResult = (LinearLayout)dlgBus.findViewById(R.id.busStopLinearLayout);
-
-                                    backButton.setOnClickListener(new View.OnClickListener() {
-                                        @Override
-                                        public void onClick(View view) {
-                                            dlgBus.dismiss();
-                                        }
-                                    });
-                                    resultText.setText(busInfo.ROUTE_NM);
-                                    dlgBus.show();
-                                    BusSearchThread busSearchThread = new BusSearchThread(searchResult, busInfo.ROUTE_ID, busStopArr);
-                                    busSearchThread.setDaemon(true);
-                                    busSearchThread.start();
-                                }
-                            });
-                        }
-                    }
+                    editKeyFunc();
                 }
                 return false;
             }
@@ -351,6 +246,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     }
                     eventType = xpp.next();
                 }
+                is.close();
             } catch (XmlPullParserException | IOException protocolException) {
                 protocolException.printStackTrace();
             }
@@ -439,6 +335,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     }
                     eventType = xpp.next();
                 }
+                is.close();
             } catch (XmlPullParserException | IOException protocolException) {
                 protocolException.printStackTrace();
             }
@@ -510,7 +407,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     });
                     busStopText.setText(busStopArr[fIndex].STATION_NM + busStopArr[fIndex].STATION_SUB_NM);
                     dlg.show();
-                    ReqBusList busListThread = new ReqBusList(busStopArr[fIndex].STATION_ID, dlg, busInfoArr, busStopArr, busStopArr[fIndex].LOCAL_Y, busStopArr[fIndex].LOCAL_X);
+                    ReqBusThread busListThread = new ReqBusThread(busStopArr[fIndex].STATION_ID, dlg, busInfoArr, busStopArr, busStopArr[fIndex].LOCAL_Y, busStopArr[fIndex].LOCAL_X);
                     busListThread.setDaemon(true);
                     busListThread.start();
                     return false;
@@ -539,6 +436,251 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void onProviderDisabled(String provider) {
 
+        }
+    }
+    @SuppressLint("ResourceType")
+    void wKeyfunc(){
+        drawerLayout.openDrawer(drawerView);
+        byte[] txt = new byte[50000];
+        try {
+            FileInputStream inFs = openFileInput(fName);
+            inFs.read(txt);
+            inFs.close();
+        } catch (IOException e) {       // 파일이 없을 때 종료
+            e.printStackTrace();
+            return;
+        }
+        String str = (new String(txt)).trim();
+        String [] alarmList = str.split("\n");
+        if(alarmList[0].equals("")){    // 파일 내용이 없을 때 종료
+            return;
+        }
+        LinearLayout alarmLinear = (LinearLayout) findViewById(R.id.weekAlarmLinear);
+        alarmLinear.removeAllViews();
+        for(int i = 1; i < alarmList.length; i++){
+            String [] alarmInfo = alarmList[i].split(",");
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            RelativeLayout relativeLayout = new RelativeLayout(MainActivity.this);
+            relativeLayout.setLayoutParams(params);
+            params.bottomMargin = 1;
+            relativeLayout.setBackground(ContextCompat.getDrawable(this, R.drawable.botbodclr));
+            if(i % 2 != 0){
+                relativeLayout.setBackgroundColor(Color.parseColor("#f3f3f3"));
+            }
+            //버스 이름
+            TextView whatR = new TextView(MainActivity.this);
+            whatR.setText(alarmInfo[15]);
+            whatR.setTextSize(30);
+            whatR.setTextColor(Color.parseColor("#131313"));
+            //정류장 이름
+            TextView whatS = new TextView(MainActivity.this);
+            whatS.setText(alarmInfo[14]);
+            whatS.setTextSize(25);
+            whatS.setTextColor(Color.parseColor("#131313"));
+            //시간
+            TextView when = new TextView(MainActivity.this);
+            when.setText(alarmInfo[1] + " : " + alarmInfo[2]);
+            when.setTextSize(25);
+            when.setTextColor(Color.parseColor("#333333"));
+            //요일
+            TextView week = new TextView(MainActivity.this);
+            week.setTextSize(20);
+            week.setTextColor(Color.parseColor("#535353"));
+            String result = "";
+            for(int j = 7; j < 14; j++){
+                if(alarmInfo[j].equals("true")){
+                    switch (j){
+                        case 7:{
+                            result += " 일";
+                            break;
+                        }
+                        case 8:{
+                            result += " 월";
+                            break;
+                        }
+                        case 9:{
+                            result += " 화";
+                            break;
+                        }
+                        case 10:{
+                            result += " 수";
+                            break;
+                        }
+                        case 11:{
+                            result += " 목";
+                            break;
+                        }
+                        case 12:{
+                            result += " 금";
+                            break;
+                        }
+                        case 13:{
+                            result += " 토";
+                            break;
+                        }
+                    }
+                }
+            }
+            week.setText(result);
+            //자리배치
+            RelativeLayout.LayoutParams param = new RelativeLayout.LayoutParams(
+                    RelativeLayout.LayoutParams.WRAP_CONTENT,
+                    RelativeLayout.LayoutParams.WRAP_CONTENT
+            );
+            param.addRule(RelativeLayout.ALIGN_PARENT_START);
+            whatR.setLayoutParams(param);
+            whatR.setId(2);
+
+            param = new RelativeLayout.LayoutParams(
+                    RelativeLayout.LayoutParams.WRAP_CONTENT,
+                    RelativeLayout.LayoutParams.WRAP_CONTENT
+            );
+            param.addRule(RelativeLayout.BELOW, 2);
+            whatS.setLayoutParams(param);
+            whatS.setId(3);
+
+            param = new RelativeLayout.LayoutParams(
+                    RelativeLayout.LayoutParams.WRAP_CONTENT,
+                    RelativeLayout.LayoutParams.WRAP_CONTENT
+            );
+            param.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+            when.setLayoutParams(param);
+
+            param = new RelativeLayout.LayoutParams(
+                    RelativeLayout.LayoutParams.WRAP_CONTENT,
+                    RelativeLayout.LayoutParams.WRAP_CONTENT
+            );
+            param.addRule(RelativeLayout.BELOW, 3);
+            week.setLayoutParams(param);
+
+            relativeLayout.addView(whatR);
+            relativeLayout.addView(whatS);
+            relativeLayout.addView(when);
+            relativeLayout.addView(week);
+            alarmLinear.addView(relativeLayout);
+        }
+    }
+    @SuppressLint("ResourceType")
+    void editKeyFunc(){
+        Dialog dlg = new Dialog(MainActivity.this, android.R.style.Theme_NoTitleBar);
+        dlg.setContentView(R.layout.bus_stop_list);
+        Button backButton = (Button)dlg.findViewById(R.id.backButton);
+        TextView resultText = (TextView)dlg.findViewById(R.id.busStopText);
+        LinearLayout searchResult = (LinearLayout)dlg.findViewById(R.id.busStopLinearLayout);
+
+        backButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dlg.dismiss();
+            }
+        });
+        String busNM = String.valueOf(edtSearch.getText());
+        resultText.setText("검색 결과: " + busNM);
+        dlg.show();
+        for(int i = 0; i < busInfoArr.length; i++){
+            if(busInfoArr[i].ROUTE_NM.contains(busNM)){
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                );
+                params.bottomMargin = 5;
+                RelativeLayout relativeLayout = new RelativeLayout(dlg.getContext());
+                relativeLayout.setLayoutParams(params);
+                params.bottomMargin = 1;
+                relativeLayout.setBackground(ContextCompat.getDrawable(this, R.drawable.botbodclr));
+                // 버스 번호
+                TextView what = new TextView(dlg.getContext());
+                what.setTextSize(40);
+                what.setId(2);
+                what.setText(busInfoArr[i].ROUTE_NM);
+                switch (busInfoArr[i].ROUTE_COLOR){
+                    case 2:{
+                        what.setTextColor(Color.parseColor("#0055ff"));
+                        break;
+                    }
+                    case 3:
+                    case 1: {
+                        what.setTextColor(Color.parseColor("#00DD00"));
+                        break;
+                    }
+                    case 5:{
+                        what.setTextColor(Color.parseColor("#ff5500"));
+                        break;
+                    }
+                    case 6:{
+                        what.setTextColor(Color.parseColor("#ff0044"));
+                        break;
+                    }
+                    default:{
+                        what.setTextColor(Color.parseColor("#030303"));
+                        break;
+                    }
+                }
+                // 정류장 수
+                TextView count = new TextView(dlg.getContext());
+                count.setTextSize(17);
+                count.setTextColor(Color.parseColor("#131313"));
+                count.setText(Short.toString(busInfoArr[i].STATION_CNT));
+
+                // 정류장 수 코멘트
+                TextView com = new TextView(dlg.getContext());
+                com.setTextSize(10);
+                com.setTextColor(Color.parseColor("#D3D3D3"));
+                com.setText("총 정류장 수");
+
+                // 레이아웃 디자인
+                RelativeLayout.LayoutParams param = new RelativeLayout.LayoutParams(
+                        RelativeLayout.LayoutParams.WRAP_CONTENT,
+                        RelativeLayout.LayoutParams.WRAP_CONTENT
+                );
+                param.addRule(RelativeLayout.ALIGN_PARENT_START, 1);
+                param.leftMargin = 15;
+                what.setLayoutParams(param);
+                param = new RelativeLayout.LayoutParams(
+                        RelativeLayout.LayoutParams.WRAP_CONTENT,
+                        RelativeLayout.LayoutParams.WRAP_CONTENT
+                );
+                count.setLayoutParams(param);
+                param.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+                param = new RelativeLayout.LayoutParams(
+                        RelativeLayout.LayoutParams.WRAP_CONTENT,
+                        RelativeLayout.LayoutParams.WRAP_CONTENT
+                );
+                param.addRule(RelativeLayout.ALIGN_BOTTOM, 2);
+                param.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+                com.setLayoutParams(param);
+                relativeLayout.addView(what);
+                relativeLayout.addView(count);
+                relativeLayout.addView(com);
+                searchResult.addView(relativeLayout);
+                relativeLayout.setTag(busInfoArr[i]);
+                relativeLayout.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        BusInfo busInfo = (BusInfo) view.getTag();
+                        Dialog dlgBus = new Dialog(dlg.getContext(), android.R.style.Theme_NoTitleBar);
+                        dlgBus.setContentView(R.layout.bus_stop_list);
+                        Button backButton = (Button)dlgBus.findViewById(R.id.backButton);
+                        TextView resultText = (TextView)dlgBus.findViewById(R.id.busStopText);
+                        LinearLayout searchResult = (LinearLayout)dlgBus.findViewById(R.id.busStopLinearLayout);
+
+                        backButton.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                dlgBus.dismiss();
+                            }
+                        });
+                        resultText.setText(busInfo.ROUTE_NM);
+                        dlgBus.show();
+                        BusSearchThread busSearchThread = new BusSearchThread(searchResult, busInfo.ROUTE_ID, busStopArr, busInfoArr);
+                        busSearchThread.setDaemon(true);
+                        busSearchThread.start();
+                    }
+                });
+            }
         }
     }
 }

@@ -29,6 +29,11 @@
             </intent-filter>
         </activity>
         <receiver
+            android:name=".WeekAlarmReceiver"
+            android:enabled="true"
+            android:exported="false"
+            />
+        <receiver
             android:name=".AlarmReceiver"
             android:enabled="true"
             android:exported="false"

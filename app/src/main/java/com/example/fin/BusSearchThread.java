@@ -25,6 +25,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.ContextCompat;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -41,11 +42,13 @@ public class BusSearchThread extends Thread {
     LinearLayout baseLayout;
     int busId;
     BusStopInfo [] busStopArr;
+    BusInfo [] busInfoArr;
 
-    BusSearchThread(LinearLayout linearLayout, int busId, BusStopInfo [] busStopArr) {
+    BusSearchThread(LinearLayout linearLayout, int busId, BusStopInfo [] busStopArr, BusInfo [] busInfoArr) {
         this.baseLayout = linearLayout;
         this.busId = busId;
         this.busStopArr = busStopArr;
+        this.busInfoArr = busInfoArr;
     }
 
     @Override
@@ -71,6 +74,8 @@ public class BusSearchThread extends Thread {
                         RelativeLayout.LayoutParams.WRAP_CONTENT
                 );
                 relativeLayout.setLayoutParams(param);
+                param.bottomMargin = 1;
+                relativeLayout.setBackground(ContextCompat.getDrawable(baseLayout.getContext(), R.drawable.botbodclr));
                 // 현재 위치를 표시할 버스 아이콘
                 TextView icon = new TextView(baseLayout.getContext());
                 param = new RelativeLayout.LayoutParams(
@@ -109,7 +114,7 @@ public class BusSearchThread extends Thread {
                 tur.setLayoutParams(param);
                 tur.setTextSize(20);
                 tur.setText("회차지");
-                tur.setTextColor(Color.parseColor("#66ccff"));
+                tur.setTextColor(Color.parseColor("#131313"));
                 tur.setId(3);
                 if(!busRouteArr[i].TUR){
                     tur.setVisibility(TextView.INVISIBLE);
@@ -137,7 +142,7 @@ public class BusSearchThread extends Thread {
                     @Override
                     public void onClick(View view) {
                         BusRoute busRoute = (BusRoute) view.getTag();
-                        BusSearchStopThread bSST = new BusSearchStopThread(busRoute.STATION_ID, busRoute.ROUTE_ID, view, busRouteArr);
+                        BusSearchStopThread bSST = new BusSearchStopThread(busRoute.STATION_ID, busRoute.ROUTE_ID, view, busRouteArr, busInfoArr);
                         bSST.setDaemon(true);
                         bSST.start();
                     }
@@ -150,19 +155,21 @@ public class BusSearchThread extends Thread {
         int routeId;
         View view;
         BusRoute [] busRouteArr;
+        BusInfo [] busInfoArr;
 
-        BusSearchStopThread(int stationId, int routeId, View view, BusRoute [] busRouteArr){
+        BusSearchStopThread(int stationId, int routeId, View view, BusRoute [] busRouteArr, BusInfo [] busInfoArr){
             this.stationId = stationId;
             this.routeId = routeId;
             this.view = view;
             this.busRouteArr = busRouteArr;
+            this.busInfoArr = busInfoArr;
         }
 
         @Override
         public void run() {
             super.run();
             Message message = handler.obtainMessage();
-            Bus bus = ReqBusClassSearch.getBus(stationId, routeId);
+            Bus bus = ReqBusClassSearch.getBus(stationId, routeId, busInfoArr);
             if (bus != null) {
                 bus.busRouteArr = busRouteArr;
             }
@@ -198,7 +205,7 @@ public class BusSearchThread extends Thread {
         static String endPoint = "http://openapi.changwon.go.kr/rest/bis/BusArrives/";
         static String key = "0%2BXvCseXelCWRB66ZSWmKJLmed%2BENq9on4sYgzJQm6o2P1uhkiaFr8x58WcbTPEaDtktKzQCtIszeA0ndXQaBg%3D%3D";
 
-        public static Bus getBus(int stationId, int routeId){
+        public static Bus getBus(int stationId, int routeId, BusInfo [] busArr){
             XmlPullParser xpp;
             XmlPullParserFactory factory;
             try {
@@ -234,6 +241,24 @@ public class BusSearchThread extends Thread {
                                         if(routeId == bus.ROUTE_ID){
                                             isThis = true;
                                         }
+                                        int low = 0;
+                                        int high = busArr.length - 1;
+                                        int mid;
+                                        while(low <= high) {
+                                            mid = (low + high) / 2;
+                                            if (busArr[mid].ROUTE_ID == bus.ROUTE_ID) {
+                                                bus.index = mid;
+                                                bus.BUS_NM = busArr[mid].ROUTE_NM;
+                                                bus.STATION_CNT = busArr[mid].STATION_CNT;
+                                                break;
+                                            }
+                                            else if (busArr[mid].ROUTE_ID > bus.ROUTE_ID) {
+                                                high = mid - 1;
+                                            }
+                                            else {
+                                                low = mid + 1;
+                                            }
+                                        }
                                         xpp.next();
                                         break;
                                     }
@@ -261,6 +286,7 @@ public class BusSearchThread extends Thread {
                     }
                     eventType = xpp.next();
                 }
+                is.close();
             } catch (XmlPullParserException | IOException protocolException) {
                 protocolException.printStackTrace();
             }
