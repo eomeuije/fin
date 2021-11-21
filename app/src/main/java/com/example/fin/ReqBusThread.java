@@ -214,7 +214,7 @@ class ReqBusThread extends Thread{
                                     @SuppressLint("MissingPermission")
                                     @Override
                                     public void onClick(View view) {
-                                        CreateAlarmDialog.create(view, stationLat, stationLon);
+                                        CreateAlarmDialog.create(view, (Bus)view.getTag(), stationLat, stationLon);
                                     }
                                 });
 

@@ -27,11 +27,13 @@ public class WeekAlarmReceiver extends BroadcastReceiver {
     String fName = "AlarmList.csv";
     int time = 0;
     Context context;
+    Intent intent;
 
     @SuppressLint("MissingPermission")
     @Override
     public void onReceive(Context context, Intent intent) {
         this.context = context;
+        this.intent = intent;
         String[] alarmList;
         try {
             InputStream inFs = context.openFileInput(fName);
@@ -44,29 +46,14 @@ public class WeekAlarmReceiver extends BroadcastReceiver {
             e.printStackTrace();
             return;
         }
-
         String id = intent.getStringExtra("id");
-        String[] alarmInfo = getLine(id, alarmList);
-        // 삭제된(존재하지 않는) 알람일 경우 바로 종료
+        String[] alarmInfo = CreateAlarmDialog.getLine(id, alarmList);
+        // 알람이 삭제 됐을 때 바로 종료
         if(alarmInfo == null){
             return;
         }
-        Calendar cal = Calendar.getInstance();
-        // 다음날 알람매니저 설정
-        PendingIntent pIntent = PendingIntent.getBroadcast(context, 1, intent, 0);
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        int hour = Integer.parseInt(alarmInfo[1]);
-        int min = Integer.parseInt(alarmInfo[2]);
-        if(hour >= 12){
-            cal.set(Calendar.AM_PM, 1);
-            hour -= 12;
-        }else{
-            cal.set(Calendar.AM_PM, 0);
-        }
-        cal.set(Calendar.HOUR, hour);
-        cal.set(Calendar.MINUTE, min);
-        alarmManager.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), pIntent);
         // 지금 요일이 알람 요일인지 확인, 아니면 종료
+        Calendar cal = Calendar.getInstance();
         if(alarmInfo[cal.get(Calendar.DAY_OF_WEEK) + 6].equals("false")){
             return;
         }
@@ -88,7 +75,6 @@ public class WeekAlarmReceiver extends BroadcastReceiver {
         ReqBusThread thread = new ReqBusThread(Integer.parseInt(alarmInfo[5]), Integer.parseInt(alarmInfo[6]));
         thread.setDaemon(true);
         thread.start();
-
     }
     class ReqBusThread extends Thread{
 
@@ -199,42 +185,21 @@ public class WeekAlarmReceiver extends BroadcastReceiver {
                     }
                     Calendar cal = Calendar.getInstance();
                     cal.add(Calendar.SECOND, time);
-                    // Receiver 설정
-                    Intent intent = new Intent(context, AlarmReceiver.class);
-                    // state 값이 on 이면 알람시작, off 이면 중지
-                    intent.putExtra("state", "on");
-
-                    PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 10000, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-                    // 알람 설정
-                    AlarmManager alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
-                    alarmManager.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), pendingIntent);
+                    System.out.println(cal.getTime());
+                    //알람 설정
+                    CreateAlarmDialog.startAlarm(context, cal
+                            , intent.getStringExtra("stationNM"), intent.getStringExtra("busNM"));
                 }
                 else if(msg.what == 2){
                     time += BusRoute.getBusTerm(bus.busRouteArr, bus.STATION_ORD);
                     Calendar cal = Calendar.getInstance();
                     cal.add(Calendar.SECOND, time);
-                    // Receiver 설정
-                    Intent intent = new Intent(context, AlarmReceiver.class);
-                    // state 값이 on 이면 알람시작, off 이면 중지
-                    intent.putExtra("state", "on");
-
-                    PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 10000, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-
+                    System.out.println(cal.getTime());
                     // 알람 설정
-                    AlarmManager alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
-                    alarmManager.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), pendingIntent);
+                    CreateAlarmDialog.startAlarm(context, cal
+                            , intent.getStringExtra("stationNM"), intent.getStringExtra("busNM"));
                 }
             }
         };
-    }
-    public static String[] getLine(String id, String [] alarmList){
-        for(int i = 1; i< alarmList.length; i++){
-            String[] alarmInfo = alarmList[i].split(",");
-            if(alarmInfo[0].equals(id)){
-                return alarmInfo;
-            }
-        }
-        return null;
     }
 }

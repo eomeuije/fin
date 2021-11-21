@@ -110,6 +110,7 @@ public class ReqBusRouteList{
         } catch (XmlPullParserException | IOException protocolException) {
             protocolException.printStackTrace();
         }
+        // 중복되는 버스 삭제
         if(same > 0){
             BusRoute [] busRouteArrR = new BusRoute[busRouteArr.length - same];
             for(int i = 0; i < busRouteArrR.length; i++){

@@ -10,6 +10,8 @@ public class AlarmReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         Intent sIntent = new Intent(context, AlarmService.class);
         sIntent.putExtra("state", intent.getStringExtra("state"));
+        sIntent.putExtra("stationNM", intent.getStringExtra("stationNM"));
+        sIntent.putExtra("busNM", intent.getStringExtra("busNM"));
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(sIntent);

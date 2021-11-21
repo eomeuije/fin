@@ -29,8 +29,7 @@ import java.util.Calendar;
 
 public class CreateAlarmDialog {
     @SuppressLint("MissingPermission")
-    public static void create(View view, Double stationLat, Double stationLon){
-        Bus bus = (Bus)view.getTag();
+    public static void create(View view, Bus bus, Double stationLat, Double stationLon){
         View dialogView = (View)View.inflate(view.getContext(), R.layout.dialog_alarm, null);
         AlertDialog.Builder dlg = new AlertDialog.Builder(view.getContext());
         dlg.setView(dialogView);
@@ -65,9 +64,13 @@ public class CreateAlarmDialog {
 
         if(time < 0){       // 0보다 작으면 그 다음 버스나 이미 지난 버스의 위치로 배차간격을 계산해 시간을 예상한다.
             TextView danger = (TextView) dialogView.findViewById(R.id.dangerMessage);
-            danger.setText("※주의 시간이 부정확할 수 있습니다.");
 
             time += BusRoute.getBusTerm(bus.busRouteArr, bus.STATION_ORD);
+            if(time < 0){
+                danger.setText("※주의: 알맞은 시간을 찾을 수 없습니다.");
+            }else {
+                danger.setText("※주의: 시간이 부정확할 수 있습니다.");
+            }
         }
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.SECOND, time);
@@ -106,21 +109,19 @@ public class CreateAlarmDialog {
                         }
                         cal.set(Calendar.MINUTE, wTimePicker.getCurrentMinute());
                     }
-                    ToggleButton toggleSun = (ToggleButton) dialogView.findViewById(R.id.toggle_sun);
-                    ToggleButton toggleMon = (ToggleButton) dialogView.findViewById(R.id.toggle_mon);
-                    ToggleButton toggleTue = (ToggleButton) dialogView.findViewById(R.id.toggle_tue);
-                    ToggleButton toggleWed = (ToggleButton) dialogView.findViewById(R.id.toggle_wed);
-                    ToggleButton toggleThu = (ToggleButton) dialogView.findViewById(R.id.toggle_thu);
-                    ToggleButton toggleFri = (ToggleButton) dialogView.findViewById(R.id.toggle_fri);
-                    ToggleButton toggleSat = (ToggleButton) dialogView.findViewById(R.id.toggle_sat);
+                    ToggleButton[] tBtnArr = new ToggleButton[7];
+                    for(int j = 0; j < 7; j++){
+                        tBtnArr[j] = (ToggleButton) dialogView.findViewById
+                                (dialogView.getResources().getIdentifier("toggle_" + (j + 1), "id", "com.example.fin"));
+                    }
 
                     String fName = "AlarmList.csv";
                     String id = null;
                     FileInputStream inFs = null;
                     FileOutputStream outFs;
-                    // 파일이 없으면 파일 생성
                     try{
                         inFs = view.getContext().openFileInput(fName);
+                        // 파일이 없으면 파일 생성
                     }catch (IOException e){
                         try {
                             outFs = view.getContext().openFileOutput(fName, Context.MODE_PRIVATE);
@@ -144,16 +145,16 @@ public class CreateAlarmDialog {
                             hour += 12;
                         }
                         // 0ID 1시 2분 3정류장위도 4정류장경도 5정류장ID 6버스ID 78910111213일월화수목금토 14정류장이름 15버스이름
-                        str = id+","+hour+","+min+","+stationLat+","+stationLon
+                        String appStr = id+","+hour+","+min+","+stationLat+","+stationLon
                                 +","+bus.busRouteArr[bus.STATION_ORD - 1].STATION_ID+","+bus.ROUTE_ID
-                                +","+toggleSun.isChecked()+","+toggleMon.isChecked()
-                                +","+toggleTue.isChecked()+","+toggleWed.isChecked()
-                                +","+toggleThu.isChecked()+","+toggleFri.isChecked()
-                                +","+toggleSat.isChecked()
+                                +","+tBtnArr[0].isChecked()+","+tBtnArr[1].isChecked()
+                                +","+tBtnArr[2].isChecked()+","+tBtnArr[3].isChecked()
+                                +","+tBtnArr[4].isChecked()+","+tBtnArr[5].isChecked()
+                                +","+tBtnArr[6].isChecked()
                                 +","+bus.busRouteArr[bus.STATION_ORD - 1].STATION_NM+","+bus.BUS_NM+"\n";
                         alarmList[0] = Integer.toString(Integer.parseInt(id) + 1);
 
-                        String resStr = getFileStr(alarmList) + str;
+                        String resStr = getFileStr(alarmList) + appStr;
                         outFs = view.getContext().openFileOutput(fName, Context.MODE_PRIVATE);
                         outFs.write(resStr.getBytes());
                         outFs.close();
@@ -162,12 +163,8 @@ public class CreateAlarmDialog {
                         exception.printStackTrace();
                     }
                     // 알람 시작
-                    Intent intent = new Intent(view.getContext(), WeekAlarmReceiver.class);
-                    intent.putExtra("id", id);
-                    PendingIntent pIntent = PendingIntent.getBroadcast(view.getContext(), 1, intent, 0);
-                    AlarmManager alarmManager = (AlarmManager) view.getContext().getSystemService(Context.ALARM_SERVICE);
-                    alarmManager.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), pIntent);
-
+                    wStartAlarm(id, view.getContext(), cal, bus.busRouteArr[bus.STATION_ORD - 1].STATION_NM, bus.BUS_NM);
+                    // 토스트 메시지
                     Toast.makeText(dialogView.getContext(), "알람이 설정되었습니다.", Toast.LENGTH_LONG).show();
 
                 }else if(tabHost.getCurrentTab() == 1){
@@ -190,16 +187,9 @@ public class CreateAlarmDialog {
                         }
                         cal.set(Calendar.MINUTE, timePicker.getCurrentMinute());
                     }
-                    // Receiver 설정
-                    Intent intent = new Intent(dlg.getContext(), AlarmReceiver.class);
-                    // state 값이 on 이면 알람시작, off 이면 중지
-                    intent.putExtra("state", "on");
-
-                    PendingIntent pendingIntent = PendingIntent.getBroadcast(dlg.getContext(), 10000, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-
                     // 알람 설정
-                    AlarmManager alarmManager = (AlarmManager) dlg.getContext().getSystemService(ALARM_SERVICE);
-                    alarmManager.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), pendingIntent);
+                    startAlarm(dlg.getContext(), cal, bus.busRouteArr[bus.STATION_ORD - 1].STATION_NM, bus.BUS_NM);
+                    // 토스트 메시지
                     Toast.makeText(dialogView.getContext(), cal.getTime() + "\n알람이 설정되었습니다.", Toast.LENGTH_LONG).show();
                 }
 
@@ -211,8 +201,49 @@ public class CreateAlarmDialog {
     static String getFileStr(String [] arr){
         String result = "";
         for(int i = 0; i < arr.length; i++){
+            if(arr[i].equals("")){
+                continue;
+            }
             result += arr[i] + "\n";
         }
         return result;
+    }
+    static void cancelAlarm(String  id, Context context){
+        Intent intent = new Intent(context, AlarmReceiver.class);
+        PendingIntent pIntent = PendingIntent.getBroadcast(context, Integer.parseInt(id), intent, 0);
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
+        alarmManager.cancel(pIntent);
+    }
+    static void wStartAlarm(String id, Context context, Calendar cal, String stationNM, String busNM){
+        Intent intent = new Intent(context, WeekAlarmReceiver.class);
+        intent.putExtra("id", id);
+        intent.putExtra("stationNM", stationNM);
+        intent.putExtra("busNM", busNM);
+        PendingIntent pIntent = PendingIntent.getBroadcast(context, Integer.parseInt(id), intent, 0);
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), 24 * 60 * 60 * 1000, pIntent);
+    }
+    static void startAlarm(Context context, Calendar cal, String stationNM, String busNM){
+        // Receiver 설정
+        Intent newIntent = new Intent(context, AlarmReceiver.class);
+        // state 값이 on 이면 알람시작, off 이면 중지
+        newIntent.putExtra("state", "on");
+        newIntent.putExtra("stationNM", stationNM);
+        newIntent.putExtra("busNM", busNM);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 10000, newIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        // 알람 설정
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
+        alarmManager.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), pendingIntent);
+    }
+    static String[] getLine(String id, String [] alarmList){
+        for(int i = 1; i< alarmList.length; i++){
+            String[] alarmInfo = alarmList[i].split(",");
+            if(alarmInfo[0].equals(id)){
+                return alarmInfo;
+            }
+        }
+        return null;
     }
 }

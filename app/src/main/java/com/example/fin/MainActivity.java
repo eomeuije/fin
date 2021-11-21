@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
@@ -19,10 +20,14 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.TimePicker;
+import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.FragmentActivity;
@@ -42,10 +47,12 @@ import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.Calendar;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
     //구글맵참조변수
@@ -76,7 +83,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                             Manifest.permission.ACCESS_FINE_LOCATION, false);
                     Boolean coarseLocationGranted = result.getOrDefault(
                             Manifest.permission.ACCESS_COARSE_LOCATION, false);
-                    if (fineLocationGranted != null && fineLocationGranted) {
+                    Boolean backgroundLocationGranted = null;
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                                backgroundLocationGranted = result.getOrDefault(
+                                    Manifest.permission.ACCESS_BACKGROUND_LOCATION, false);
+                    }
+            if (fineLocationGranted != null && fineLocationGranted) {
+                        if(!backgroundLocationGranted){
+                            Toast.makeText(MainActivity.this, "주간 알람을 위해선 앱 설정에서 위치 권한 항상 허용을 선택해 주십시오.", Toast.LENGTH_LONG).show();
+                        }
                         Thread.currentThread().run();
                         LocationManager manager=(LocationManager)getSystemService(Context.LOCATION_SERVICE);
                         GPSListener gpsListener = new GPSListener();
@@ -467,9 +482,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             relativeLayout.setLayoutParams(params);
             params.bottomMargin = 1;
             relativeLayout.setBackground(ContextCompat.getDrawable(this, R.drawable.botbodclr));
-            if(i % 2 != 0){
-                relativeLayout.setBackgroundColor(Color.parseColor("#f3f3f3"));
-            }
             //버스 이름
             TextView whatR = new TextView(MainActivity.this);
             whatR.setText(alarmInfo[15]);
@@ -561,6 +573,121 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             relativeLayout.addView(when);
             relativeLayout.addView(week);
             alarmLinear.addView(relativeLayout);
+
+            relativeLayout.setTag(alarmInfo[0]);
+            relativeLayout.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    String  id = (String) view.getTag();
+                    View dialogView = (View)View.inflate(view.getContext(), R.layout.week_dlg, null);
+                    AlertDialog.Builder dlg = new AlertDialog.Builder(MainActivity.this);
+                    dlg.setView(dialogView);
+                    dlg.setTitle("알람 편집");
+
+                    String[] alarmList = null;
+                    try {
+                        FileInputStream inFs = view.getContext().openFileInput(fName);
+                        byte[] txt = new byte[50000];
+                        inFs.read(txt);
+                        alarmList = (new String(txt)).trim().split("\n");
+                        inFs.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    String[] aInfo = CreateAlarmDialog.getLine(id, alarmList);
+                    ToggleButton[] tBtnArr = new ToggleButton[7];
+                    for(int i = 0; i < 7; i++){
+                        tBtnArr[i] = (ToggleButton) dialogView.findViewById
+                                (getResources().getIdentifier("toggle_" + (i + 1), "id", "com.example.fin"));
+                        if (aInfo != null && aInfo[i + 7].equals("true")) {
+                            tBtnArr[i].setChecked(true);
+                        }
+                    }
+
+
+                    String[] finalAlarmList = alarmList;
+                    dlg.setPositiveButton("수정", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            TimePicker timePicker = (TimePicker)dialogView.findViewById(R.id.wTimePicker);
+                            int hour;
+                            int min;
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                                hour = timePicker.getHour();
+                                min = timePicker.getMinute();
+                            }else{
+                                hour = timePicker.getCurrentHour();
+                                min = timePicker.getCurrentMinute();
+                            }
+                            aInfo[1] = Integer.toString(hour);
+                            aInfo[2] = Integer.toString(min);
+                            for(int j = 0; j < 7; j++){
+                                if(tBtnArr[j].isChecked()){ // 요일이 체크 되어 있으면
+                                    aInfo[j + 7] = "true";  // true
+                                }else{                      // 아니면
+                                    aInfo[j + 7] = "false"; // false
+                                }
+                            }
+                            String resStr = aInfo[0]+","+aInfo[1]+","+aInfo[2]+","+aInfo[3]+","+aInfo[4]
+                                    +","+aInfo[5]+","+aInfo[6]
+                                    +","+aInfo[7]+","+aInfo[8]
+                                    +","+aInfo[9]+","+aInfo[10]
+                                    +","+aInfo[11]+","+aInfo[12]
+                                    +","+aInfo[13]
+                                    +","+aInfo[14]+","+aInfo[15];
+                            for(int j = 1; j < finalAlarmList.length; j++){
+                                if(finalAlarmList[j].split(",")[0].equals(id)){
+                                    finalAlarmList[j] = resStr;
+                                    break;
+                                }
+                            }
+                            try {
+                                FileOutputStream outFs = view.getContext().openFileOutput(fName, Context.MODE_PRIVATE);
+                                outFs.write(CreateAlarmDialog.getFileStr(finalAlarmList).getBytes());
+                                outFs.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+                            //알람 재설정
+                            Calendar cal = Calendar.getInstance();
+                            if(hour >= 12){
+                                hour -= 12;
+                                cal.set(Calendar.AM_PM, Calendar.PM);
+                            }else{
+                                cal.set(Calendar.AM_PM, Calendar.AM);
+                            }
+                            cal.set(Calendar.HOUR, hour);
+                            cal.set(Calendar.MINUTE, min);
+                            CreateAlarmDialog.cancelAlarm(id, view.getContext());
+                            CreateAlarmDialog.wStartAlarm(id, view.getContext(), cal, aInfo[14], aInfo[15]);
+                            wKeyfunc();
+                        }
+                    });
+                    dlg.setNegativeButton("삭제", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            for(int j = 1; j < finalAlarmList.length; j++){
+                                if(finalAlarmList[j].split(",")[0].equals(id)){
+                                    finalAlarmList[j] = "";
+                                    break;
+                                }
+                            }
+                            try {
+                                FileOutputStream outFs = view.getContext().openFileOutput(fName, Context.MODE_PRIVATE);
+                                outFs.write(CreateAlarmDialog.getFileStr(finalAlarmList).getBytes());
+                                outFs.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+                            CreateAlarmDialog.cancelAlarm(id, view.getContext());
+                            wKeyfunc();
+                        }
+                    });
+                    dlg.show();
+                }
+            });
         }
     }
     @SuppressLint("ResourceType")

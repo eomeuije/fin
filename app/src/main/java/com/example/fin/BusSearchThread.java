@@ -56,7 +56,7 @@ public class BusSearchThread extends Thread {
         super.run();
 
         ReqBusRouteList busRouteList = new ReqBusRouteList(busId);
-        BusRoute busRouteArr[] = busRouteList.getBusRouteArr();
+        BusRoute[] busRouteArr = busRouteList.getBusRouteArr();
         Message message = handler.obtainMessage();
         message.obj = busRouteArr;
         message.what = 1;
@@ -137,7 +137,6 @@ public class BusSearchThread extends Thread {
                 relativeLayout.addView(tur);
                 relativeLayout.addView(idView);
                 relativeLayout.setTag(busRouteArr[i]);
-                baseLayout.addView(relativeLayout);
                 relativeLayout.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
@@ -147,6 +146,7 @@ public class BusSearchThread extends Thread {
                         bSST.start();
                     }
                 });
+                baseLayout.addView(relativeLayout);
             }
         }
     };
@@ -168,20 +168,19 @@ public class BusSearchThread extends Thread {
         @Override
         public void run() {
             super.run();
-            Message message = handler.obtainMessage();
+            Message message = handlerTime.obtainMessage();
             Bus bus = ReqBusClassSearch.getBus(stationId, routeId, busInfoArr);
             if (bus != null) {
                 bus.busRouteArr = busRouteArr;
             }
             message.obj = bus;
             message.what = 1;
-            handler.sendMessage(message);
+            handlerTime.sendMessage(message);
         }
-        final Handler handler = new Handler(){
+        final Handler handlerTime = new Handler(){
             @SuppressLint("MissingPermission")
             @Override
             public void handleMessage(@NonNull Message msg) {
-                view.setTag(msg.obj);
                 int low = 0;
                 int high = busStopArr.length - 1;
                 int mid = 0;
@@ -197,7 +196,7 @@ public class BusSearchThread extends Thread {
                         low = mid + 1;
                     }
                 }
-                CreateAlarmDialog.create(view, busStopArr[mid].LOCAL_Y, busStopArr[mid].LOCAL_X);
+                CreateAlarmDialog.create(view, (Bus)msg.obj, busStopArr[mid].LOCAL_Y, busStopArr[mid].LOCAL_X);
             }
         };
     }

@@ -43,7 +43,16 @@
                     android:orientation="horizontal" >
 
                     <ToggleButton
-                        android:id="@+id/toggle_mon"
+                        android:id="@+id/toggle_1"
+                        android:layout_width="40dp"
+                        android:layout_height="45dp"
+                        android:textAppearance="?android:attr/textAppearanceSmall"
+                        android:textOff="일"
+                        android:textOn="일"
+                        android:layout_weight="1"/>
+
+                    <ToggleButton
+                        android:id="@+id/toggle_2"
                         android:layout_width="40dp"
                         android:layout_height="45dp"
                         android:textAppearance="?android:attr/textAppearanceSmall"
@@ -52,7 +61,7 @@
                         android:layout_weight="1"/>
 
                     <ToggleButton
-                        android:id="@+id/toggle_tue"
+                        android:id="@+id/toggle_3"
                         android:layout_width="40dp"
                         android:layout_height="45dp"
                         android:textAppearance="?android:attr/textAppearanceSmall"
@@ -61,7 +70,7 @@
                         android:layout_weight="1"/>
 
                     <ToggleButton
-                        android:id="@+id/toggle_wed"
+                        android:id="@+id/toggle_4"
                         android:layout_width="40dp"
                         android:layout_height="45dp"
                         android:textAppearance="?android:attr/textAppearanceSmall"
@@ -70,7 +79,7 @@
                         android:layout_weight="1"/>
 
                     <ToggleButton
-                        android:id="@+id/toggle_thu"
+                        android:id="@+id/toggle_5"
                         android:layout_width="40dp"
                         android:layout_height="45dp"
                         android:textAppearance="?android:attr/textAppearanceSmall"
@@ -79,7 +88,7 @@
                         android:layout_weight="1"/>
 
                     <ToggleButton
-                        android:id="@+id/toggle_fri"
+                        android:id="@+id/toggle_6"
                         android:layout_width="40dp"
                         android:layout_height="45dp"
                         android:textAppearance="?android:attr/textAppearanceSmall"
@@ -88,7 +97,7 @@
                         android:layout_weight="1"/>
 
                     <ToggleButton
-                        android:id="@+id/toggle_sat"
+                        android:id="@+id/toggle_7"
                         android:layout_width="40dp"
                         android:layout_height="45dp"
                         android:textAppearance="?android:attr/textAppearanceSmall"
@@ -96,14 +105,6 @@
                         android:textOn="토"
                         android:layout_weight="1"/>
 
-                    <ToggleButton
-                        android:id="@+id/toggle_sun"
-                        android:layout_width="40dp"
-                        android:layout_height="45dp"
-                        android:textAppearance="?android:attr/textAppearanceSmall"
-                        android:textOff="일"
-                        android:textOn="일"
-                        android:layout_weight="1"/>
                 </LinearLayout>
                 <TimePicker
                     android:timePickerMode="spinner"
