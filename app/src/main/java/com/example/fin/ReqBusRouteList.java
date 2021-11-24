@@ -132,9 +132,6 @@ class BusRoute{
 
     public static int getBusTerm(BusRoute [] busRouteArr, int target){
         int size = busRouteArr.length;
-        if(busRouteArr[size - 1].STATION_ID < 0){
-            size = ~busRouteArr[size - 1].STATION_ID + 1;
-        }
         int timeResult = 0;         //배차 간격
         boolean arriveStartPoint = false;
         boolean arriveEndPoint = false;
@@ -148,12 +145,12 @@ class BusRoute{
                     if (next == -1) {                  // 다음 버스 위치 저장
                         next = i;
                         if(prev != -1){
-                            timeResult = (prev + next) * 75;
+                            timeResult = (prev + next) * 65;
                             break;
                         }
                     } else if (nNext == -1) {         // 다다음 버스 위치 저장
                         nNext = i;
-                        timeResult = (nNext - next) * 75;
+                        timeResult = (nNext - next) * 65;
                         break;
                     }
                 }
@@ -165,12 +162,12 @@ class BusRoute{
                     if (prev == -1) {
                         prev = i;
                         if(next != -1) {
-                            timeResult = (prev + next) * 75;
+                            timeResult = (prev + next) * 65;
                             break;
                         }
                     }else if(pPrev == -1){
                         pPrev = i;
-                        timeResult = (pPrev - prev) * 75;
+                        timeResult = (pPrev - prev) * 65;
                         break;
                     }
                 }

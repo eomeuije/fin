@@ -45,7 +45,7 @@ public class CreateAlarmDialog {
         tabSpecArtist.setContent(R.id.weekAlarm);
         tabHost.addTab(tabSpecArtist);
 
-        TabHost.TabSpec tabSpecSong = tabHost.newTabSpec("temporalAlarm").setIndicator("일시알람설정");
+        TabHost.TabSpec tabSpecSong = tabHost.newTabSpec("temporalAlarm").setIndicator("일반알람설정");
         tabSpecSong.setContent(R.id.temporalAlarm);
         tabHost.addTab(tabSpecSong);
 
@@ -232,7 +232,7 @@ public class CreateAlarmDialog {
         newIntent.putExtra("stationNM", stationNM);
         newIntent.putExtra("busNM", busNM);
 
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 10000, newIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, -1234, newIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         // 알람 설정
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(ALARM_SERVICE);
         alarmManager.set(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), pendingIntent);

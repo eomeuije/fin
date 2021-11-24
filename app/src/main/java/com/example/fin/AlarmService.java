@@ -69,7 +69,7 @@ public class AlarmService extends Service {
             Intent intentOff = new Intent(this, AlarmReceiver.class);
             intentOff.putExtra("state", "off");
             //sendBroadcast(intent);
-            PendingIntent snoozePendingIntent =
+            PendingIntent sPendingIntent =
                     PendingIntent.getBroadcast(this, 2, intentOff, 0);
             //full
             Intent fullScreenIntent = new Intent(this, MainActivity.class);
@@ -84,7 +84,7 @@ public class AlarmService extends Service {
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setDefaults(NotificationCompat.DEFAULT_ALL)
                     .addAction(R.drawable.ic_launcher_background, "알람 종료",
-                            snoozePendingIntent)
+                            sPendingIntent)
                     .setFullScreenIntent(fullScreenPendingIntent, true)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                     .build();

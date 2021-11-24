@@ -168,8 +168,8 @@ public class BusSearchThread extends Thread {
         @Override
         public void run() {
             super.run();
-            Message message = handlerTime.obtainMessage();
             Bus bus = ReqBusClassSearch.getBus(stationId, routeId, busInfoArr);
+            Message message = handlerTime.obtainMessage();
             if (bus != null) {
                 bus.busRouteArr = busRouteArr;
             }
@@ -182,6 +182,9 @@ public class BusSearchThread extends Thread {
             @Override
             public void handleMessage(@NonNull Message msg) {
                 int low = 0;
+                if(busStopArr == null){
+                    return;
+                }
                 int high = busStopArr.length - 1;
                 int mid = 0;
                 while(low <= high) {

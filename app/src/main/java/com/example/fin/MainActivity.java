@@ -77,49 +77,63 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        @SuppressLint("MissingPermission") ActivityResultLauncher<String[]> locationPermissionRequest = registerForActivityResult(new ActivityResultContracts
+
+        @SuppressLint("MissingPermission")
+        ActivityResultLauncher<String[]> backPermissionReq = registerForActivityResult(new ActivityResultContracts
+                        // 응답 후 익명 함수 실행
                         .RequestMultiplePermissions(), result -> {
-                    Boolean fineLocationGranted = result.getOrDefault(
-                            Manifest.permission.ACCESS_FINE_LOCATION, false);
-                    Boolean coarseLocationGranted = result.getOrDefault(
-                            Manifest.permission.ACCESS_COARSE_LOCATION, false);
-                    Boolean backgroundLocationGranted = null;
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                                backgroundLocationGranted = result.getOrDefault(
-                                    Manifest.permission.ACCESS_BACKGROUND_LOCATION, false);
-                    }
-            if (fineLocationGranted != null && fineLocationGranted) {
-                        if(!backgroundLocationGranted){
-                            Toast.makeText(MainActivity.this, "주간 알람을 위해선 앱 설정에서 위치 권한 항상 허용을 선택해 주십시오.", Toast.LENGTH_LONG).show();
-                        }
-                        Thread.currentThread().run();
+                    Boolean background = result.getOrDefault(
+                            Manifest.permission.ACCESS_BACKGROUND_LOCATION, false);
+                    // 응답 결과에 따른 if else
+                    if (background) {
+                        // 현재 위치를 가져옴
                         LocationManager manager=(LocationManager)getSystemService(Context.LOCATION_SERVICE);
                         GPSListener gpsListener = new GPSListener();
                         manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, gpsListener);
                         manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1, gpsListener);
                         lastLocation = manager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                        // SupportMapFragment을 통해 레이아웃에 만든 fragment의 ID를 참조하고 구글맵을 호출한다.
+                        // 구글 fragment의 ID를 참조하고 구글맵을 호출
                         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-                        mapFragment.getMapAsync(this); //getMapAsync must be called on the main thread.
-                    } else if (coarseLocationGranted != null && coarseLocationGranted) {
-
-                        // Only approximate location access granted.
-                    } else {
-
-                        // No location access granted.
+                        mapFragment.getMapAsync(this); // 반드시 메인 스레드에서 실행
+                    } else{
+                        // 주간 알람을 위한 앱 설정 요청 (사용자가 직접 해주어야 함.)
+                        Toast.makeText(MainActivity.this, "주간 알람을 위해선 앱 설정에서\n위치 권한 항상 허용을 선택해 주십시오.", Toast.LENGTH_LONG).show();
+                    }
+                }
+        );
+                    // 사용자에게 권한 요청
+        ActivityResultLauncher<String[]> locationPermissionRequest = registerForActivityResult(new ActivityResultContracts
+                                                    // 응답 후 익명 함수 실행
+                        .RequestMultiplePermissions(), result -> {
+                    Boolean fineLocationGranted = result.getOrDefault(
+                            Manifest.permission.ACCESS_FINE_LOCATION, false);
+                    Boolean coarseLocationGranted = result.getOrDefault(
+                            Manifest.permission.ACCESS_COARSE_LOCATION, false);
+                    // 응답 결과에 따른 if else
+                    if (fineLocationGranted != null && fineLocationGranted) {
+                        backPermissionReq.launch(new String[]{
+                                Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                        });
+                    } else if (coarseLocationGranted != null && coarseLocationGranted) {    // 대략적인 위치 정보만 허용되었을 때
+                        Toast.makeText(MainActivity.this, "주간 알람을 위해선 앱 설정에서\n위치 권한 항상 허용을 선택해 주십시오.", Toast.LENGTH_LONG).show();
+                        backPermissionReq.launch(new String[]{
+                                Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                        });
+                    } else {    // 권한이 없을 때
+                        Toast.makeText(MainActivity.this, "주간 알람을 위해선 앱 설정에서\n위치 권한 항상 허용을 선택해 주십시오.", Toast.LENGTH_LONG).show();
+                        backPermissionReq.launch(new String[]{
+                                Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                        });
                     }
                 }
         );
 
-// ...
-
-// Before you perform the actual permission request, check whether your app
-// already has the permissions, and whether your app needs to show a permission
-// rationale dialog. For more details, see Request permissions.
+        // 권한 요청 실행
         locationPermissionRequest.launch(new String[]{
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION
         });
+        // 버스 검색을 위한 버스 정보 저장
         BusInfoThread busInfothread = new BusInfoThread();
         busInfothread.setDaemon(true);
         busInfothread.start();
@@ -281,14 +295,19 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             XmlPullParser xpp;
             XmlPullParserFactory factory;
             try {
-                URL url = new URL(busStopInfoEndPoint + "?serviceKey=" + key); //문자열로 된 요청 url을 URL객체로 생성
+                // 문자열로 된 요청 url을 URL객체로 생성
+                URL url = new URL(busStopInfoEndPoint + "?serviceKey=" + key);
+                // url, 스트림 연결
                 InputStream is = url.openStream();
                 factory = XmlPullParserFactory.newInstance();
                 xpp = factory.newPullParser();
+                // xml의 현재 위치 저장
                 int eventType = xpp.getEventType();
+                // xml parser와 url내용을 연결
                 xpp.setInput(new InputStreamReader(is, "UTF-8"));
                 String tagName = null;
                 int busStopArrIndex = 0;
+                // 파싱 시작
                 while(eventType != XmlPullParser.END_DOCUMENT){
                     tagName = xpp.getName();
                     if(tagName == null){
@@ -361,8 +380,56 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     final Handler handler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            // insertion sort
+
+            // 마커가 모두 찍힌 후 클릭이벤트, 정렬
             if(msg.what == -1){
+                mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+                    @Override
+                    public boolean onMarkerClick(Marker marker) {
+                        if(marker.getTitle().equals("내 위치")){
+                            return false;
+                        }
+                        int id = Integer.parseInt(marker.getSnippet());
+                        int fIndex = -1;
+                        // 이진 탐색
+                        int low = 0;
+                        int high = busStopArr.length - 1;
+                        int mid;
+                        while(low <= high) {
+                            mid = (low + high) / 2;
+                            if (busStopArr[mid].STATION_ID == id) {
+                                fIndex = mid;
+                                break;
+                            }
+                            else if (busStopArr[mid].STATION_ID > id) {
+                                high = mid - 1;
+                            }
+                            else {
+                                low = mid + 1;
+                            }
+                        }
+                        // 다이얼로그 선언, 초기화
+                        Dialog dlg = new Dialog(MainActivity.this, android.R.style.Theme_NoTitleBar);
+                        dlg.setContentView(R.layout.bus_stop_list);
+                        Button backButton = (Button)dlg.findViewById(R.id.backButton);
+                        TextView busStopText = (TextView)dlg.findViewById(R.id.busStopText);
+                        // 뒤로가기 버튼 구현
+                        backButton.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                dlg.dismiss();
+                            }
+                        });
+                        // 정류장 이름
+                        busStopText.setText(busStopArr[fIndex].STATION_NM + busStopArr[fIndex].STATION_SUB_NM);
+                        // 다이얼로그를 띄움
+                        dlg.show();
+                        ReqBusThread busListThread = new ReqBusThread(busStopArr[fIndex].STATION_ID, dlg, busInfoArr, busStopArr, busStopArr[fIndex].LOCAL_Y, busStopArr[fIndex].LOCAL_X);
+                        busListThread.setDaemon(true);
+                        busListThread.start();
+                        return false;
+                    }
+                });
                 for (int i = 1; i < busStopArr.length; i++)
                     for (int j = i; j > 0; j--)
                         if (busStopArr[j - 1].STATION_ID > busStopArr[j].STATION_ID)
@@ -386,48 +453,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     .alpha(0.5f)
                     .snippet(String.valueOf(busStopArr[index].STATION_ID));
             mMap.addMarker(makerOptions);
-            mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-                @Override
-                public boolean onMarkerClick(Marker marker) {
-                    if(marker.getTitle().equals("내 위치")){
-                        return false;
-                    }
-                    int id = Integer.parseInt(marker.getSnippet());
-                    int fIndex = -1;
-                    int low = 0;
-                    int high = busStopArr.length - 1;
-                    int mid;
-                    while(low <= high) {
-                        mid = (low + high) / 2;
-                        if (busStopArr[mid].STATION_ID == id) {
-                            fIndex = mid;
-                            break;
-                        }
-                        else if (busStopArr[mid].STATION_ID > id) {
-                            high = mid - 1;
-                        }
-                        else {
-                            low = mid + 1;
-                        }
-                    }
-                    Dialog dlg = new Dialog(MainActivity.this, android.R.style.Theme_NoTitleBar);
-                    dlg.setContentView(R.layout.bus_stop_list);
-                    Button backButton = (Button)dlg.findViewById(R.id.backButton);
-                    TextView busStopText = (TextView)dlg.findViewById(R.id.busStopText);
-                    backButton.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            dlg.dismiss();
-                        }
-                    });
-                    busStopText.setText(busStopArr[fIndex].STATION_NM + busStopArr[fIndex].STATION_SUB_NM);
-                    dlg.show();
-                    ReqBusThread busListThread = new ReqBusThread(busStopArr[fIndex].STATION_ID, dlg, busInfoArr, busStopArr, busStopArr[fIndex].LOCAL_Y, busStopArr[fIndex].LOCAL_X);
-                    busListThread.setDaemon(true);
-                    busListThread.start();
-                    return false;
-                }
-            });
         }
     };
 

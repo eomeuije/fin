@@ -57,15 +57,23 @@ public class WeekAlarmReceiver extends BroadcastReceiver {
         if(alarmInfo[cal.get(Calendar.DAY_OF_WEEK) + 6].equals("false")){
             return;
         }
-        // 내 위치 가져오기
-        LocationManager manager=(LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-        MainActivity.GPSListener gpsListener = new MainActivity.GPSListener();
-        manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, gpsListener);
-        manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1, gpsListener);
-        Location lastLocation = manager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-        LocationDistance ld = new LocationDistance();
+        LocationDistance ld;
+        double myLat, myLon;
+        try {
+            // 내 위치 가져오기
+            LocationManager manager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+            MainActivity.GPSListener gpsListener = new MainActivity.GPSListener();
+            manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, gpsListener);
+            manager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 1, gpsListener);
+            Location lastLocation = manager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            ld = new LocationDistance();
 
-        Double myLat = lastLocation.getLatitude(), myLon = lastLocation.getLongitude();
+            myLat = lastLocation.getLatitude();
+            myLon = lastLocation.getLongitude();
+        }catch (Exception e) {
+            e.printStackTrace();
+            return;
+        }
         // 내 위치와 정류장 위치가 2km 이상 차이날때 알람 종료
         if(ld.distance(myLat, myLon, Double.parseDouble(alarmInfo[3]), Double.parseDouble(alarmInfo[4])) >= 2){
             return;
