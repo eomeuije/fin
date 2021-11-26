@@ -39,21 +39,20 @@
 
     </LinearLayout>
 
-    <RelativeLayout
+    <LinearLayout
         android:id="@+id/drawer"
         android:layout_width="300dp"
         android:layout_height="match_parent"
-        android:gravity="center_horizontal"
         android:background="#ffffff"
-        android:layout_gravity="start">
+        android:layout_gravity="start"
+        android:orientation="vertical">
 
         <TextView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:text="주간 알람 목록"
             android:textColor="#131313"
             android:textSize="30dp"
-            android:layout_marginBottom="10dp"
             android:id="@+id/weektext"
             android:background="#D3D3D3"/>
 
@@ -70,6 +69,6 @@
 
         </ScrollView>
 
-    </RelativeLayout>
+    </LinearLayout>
 
 </androidx.drawerlayout.widget.DrawerLayout>

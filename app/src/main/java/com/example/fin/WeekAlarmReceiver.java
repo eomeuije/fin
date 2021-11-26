@@ -1,10 +1,6 @@
 package com.example.fin;
 
-import static android.content.Context.ALARM_SERVICE;
-
 import android.annotation.SuppressLint;
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -193,7 +189,6 @@ public class WeekAlarmReceiver extends BroadcastReceiver {
                     }
                     Calendar cal = Calendar.getInstance();
                     cal.add(Calendar.SECOND, time);
-                    System.out.println(cal.getTime());
                     //알람 설정
                     CreateAlarmDialog.startAlarm(context, cal
                             , intent.getStringExtra("stationNM"), intent.getStringExtra("busNM"));
@@ -202,7 +197,6 @@ public class WeekAlarmReceiver extends BroadcastReceiver {
                     time += BusRoute.getBusTerm(bus.busRouteArr, bus.STATION_ORD);
                     Calendar cal = Calendar.getInstance();
                     cal.add(Calendar.SECOND, time);
-                    System.out.println(cal.getTime());
                     // 알람 설정
                     CreateAlarmDialog.startAlarm(context, cal
                             , intent.getStringExtra("stationNM"), intent.getStringExtra("busNM"));
