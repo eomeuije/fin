@@ -265,3 +265,21 @@ class ReqBusThread extends Thread{
         }
     };
 }
+class BusRelative{
+    RelativeLayout relativeLayout;
+    int id;
+    BusRelative(RelativeLayout relativeLayout, int id){
+        this.relativeLayout = relativeLayout;
+        this.id = id;
+    }
+}
+class Bus{
+    int ROUTE_ID;       // 노선 ID
+    String BUS_NM;          // 버스 번호
+    short STATION_ORD;     // 노선에 대한 정류장 순번
+    short PREDICT_TRAV_TM;  // 도착 예정 시간
+    short LEFT_STATION;     // 남은 정류장 수
+    int index;
+    short STATION_CNT;      // 총 정류장 수
+    BusRoute [] busRouteArr;
+}
